@@ -1,0 +1,38 @@
+---
+- hosts: localhost
+  gather_facts: true
+
+  vars:
+    ansible_python_interpreter: '{{ ansible_playbook_python }}'
+    jenkins_helm_chart_url: 'https://charts.jenkins.io'
+    image_name: 'myjenkins'
+    image_tag: '2.319.1-lts-alpine'
+
+  tasks:
+    # Build the custom jenkinss Docker image inside Minikube's environment
+    - name: Get existing image hash.
+      shell: |
+        eval $(minikube docker-env)
+        docker images -q {{ image_name }}:{{ image_tag }}
+      register: image_hash
+      changed_when: false
+
+    - name: Build image if it's not already built.
+      shell: |
+        eval $(minikube docker-env)
+        docker build -t {{ image_name }}:{{ image_tag }} jenkins-controller
+      when: not image_hash.stdout
+
+    - name: Add the jenkins helm repository
+      kubernetes.core.helm_repository:
+        name: jenkins
+        repo_url: '{{ jenkins_helm_chart_url }}'
+
+    - name: Deploy Jenkins chart on 3.9.4 with values loaded from files
+      kubernetes.core.helm:
+        name: jenkins
+        chart_ref: jenkins/jenkins
+        chart_version: 3.9.4
+        values: "{{ lookup('template', 'jenkins.yaml') | from_yaml }}"
+        release_namespace: jenkins
+        create_namespace: true

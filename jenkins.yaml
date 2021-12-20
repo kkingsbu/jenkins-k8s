@@ -1,0 +1,19 @@
+---
+controller:
+  image: '{{ image_name }}'
+  tag: '{{ image_tag }}'
+  imagePullPolicy: 'Never'
+  installPlugins: false
+  serviceType: NodePort
+  JCasC:
+    securityRealm: |-
+      local:
+        allowsSignup: false
+        enableCaptcha: false
+        users:
+        - id: "admin"
+          name: "Jenkins Admin"
+          password: "admin"
+    authorizationStrategy: |-
+      loggedInUsersCanDoAnything:
+        allowAnonymousRead: false
