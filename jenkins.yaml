@@ -5,7 +5,49 @@ controller:
   imagePullPolicy: 'Never'
   installPlugins: false
   serviceType: NodePort
+  nodePort: 31000
   JCasC:
+    configScripts:
+      welcome-message: |
+        jenkins:
+          systemMessage: Welcome to our CI\CD server.  This Jenkins is configured and managed 'as code'.
+      moaj-job: |
+        jobs:
+          - script: |
+              job('mother-of-all-jobs') {
+                scm {
+                  git {
+                    remote {
+                      url('https://github.com/kkingsbu/jenkins-jobs-config.git')
+                    }
+                    branch('*/develop')
+                  }
+                }
+                triggers {
+                  scm('*/5 * * * *')
+                }
+                steps {
+                  jobDsl {
+                    targets('jobs/mother_seed_job.groovy')
+                    sandbox(true)
+                  }
+                }
+                properties {
+                  authorizeProjectProperty {
+                    strategy {
+                      // Run this job as a specified jenkins user.
+                      specificUsersAuthorizationStrategy {
+                        // ID of the user to run builds as.
+                        userid('admin')
+                        useApitoken(false)
+                        apitoken('')
+                        password('')
+                        dontRestrictJobConfiguration(false)
+                      }
+                    }
+                  }
+                }
+              }
     securityRealm: |-
       local:
         allowsSignup: false
